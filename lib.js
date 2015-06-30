@@ -67,7 +67,7 @@ function createProp(element, key, prop){
 			if(change.type == 'update' || change.type == 'add'){
 				element.setAttribute(key, change.object[change.name])
 			}else if(change.type == 'delete'){
-				element.setAttribute(key, undefined)
+				element.setAttribute(key, '')
 			}
 		})
 		return data
