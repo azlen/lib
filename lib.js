@@ -19,7 +19,7 @@ function isElement(o){
 function r(a,b,c){
 	b = b || {}
 	c = c || []
-	if ( b.constructor != Object ) {
+	if ( b.constructor != Object || b.isReactiveTemplate == true ) {
 		c = b
 		b = {}
 	}
@@ -30,14 +30,24 @@ function r(a,b,c){
 		tag: a,
 		properties: b,
 		children: c,
-		isReactiveTemplate:true
+		isReactiveTemplate:true,
+		isSVG:false
 	}
+}
+function svg(a,b,c){
+	var s = r(a,b,c)
+	s.isSVG = true
+	return s
 }
 
 function el(o){
 	var element;
 	if(o && o.isReactiveTemplate){
-		element = document.createElement(o.tag)
+		if(o.isSVG){
+			element = document.createElementNS('http://www.w3.org/2000/svg', o.tag)
+		}else{
+			element = document.createElement(o.tag)
+		}
 		var listeners = []
 		for(var i in o.properties){
 			 createProp(element, i, o.properties[i])
@@ -74,19 +84,23 @@ function createProp(element, key, prop){
 
 function createStyle(element, style){
 	for(var i in style){
-		if(typeof style[i] == 'function' && style[i].parent != undefined){
-			var data = style[i]()
-			element.style[i] = data.object[data.property]
-			listen(data.object, data.property, function(change){
-				if(change.type == 'update' || change.type == 'add'){
-					element.style[i] = change.object[change.name]
-				}else if(change.type == 'delete'){
-					element.style[i] = undefined
-				}
-			})
-		}
-		element.style[i] = style[i]
+		createStyleProp(element, style, i)
 	}
+}
+
+function createStyleProp(element, style, i){
+	if(typeof style[i] == 'function' && style[i].parent != undefined){
+		var data = style[i]()
+		element.style[i] = data.object[data.property]
+		listen(data.object, data.property, function(change){
+			if(change.type == 'update' || change.type == 'add'){
+				element.style[i] = change.object[change.name]
+			}else if(change.type == 'delete'){
+				element.style[i] = undefined
+			}
+		})
+	}
+	element.style[i] = style[i]
 }
 
 
