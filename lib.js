@@ -96,7 +96,7 @@ function createStyleProp(element, style, i){
 			if(change.type == 'update' || change.type == 'add'){
 				element.style[i] = change.object[change.name]
 			}else if(change.type == 'delete'){
-				element.style[i] = undefined
+				element.style[i] = ''
 			}
 		})
 	}
@@ -219,19 +219,19 @@ function getLastChild( data ){
 	}
 }
 
-function createChildMapChildren( data, values ){
+function createChildMapChildren( data, values, superindex ){
 	var fragment = document.createDocumentFragment()
 	var index = placeHolderValueLookup.length
 
 	var mapped = data.map(function(d, i){
 		if( d.constructor == Array ){
 			placeHolderValueLookup.pop()
-			var c = createChildMapChildren( d )
+			var c = createChildMapChildren( d, values, i )
 			placeHolderValueLookup[index] = 0
 			fragment.appendChild( c.fragment )
 			return c.array
 		}
-		placeHolderValueLookup[index] = [values, i]
+		placeHolderValueLookup[index] = [values, superindex || i]
 		return fragment.appendChild( createChild( d ) )
 	})
 	placeHolderValueLookup.pop()
