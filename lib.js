@@ -167,17 +167,27 @@ function createChildMap( data ){
 					array.splice(change.name, 1, element)*/
 				}else if( change.type == 'add' ){
 					placeHolderValueLookup = placeHolderValueLookupBackup
-					placeHolderValueLookup[index] = [ change.object, change.name ]
 
-					var element = createChild( f ? data.fn( change.object[change.name] ) : data.fn )
+					var childdata = f ? data.fn( change.object[change.name] ) : data.fn
+					var element;
+					var elementdata;
+					if(childdata.constructor == Array){
+						var c2 = createChildMapChildren( childdata, change.object, change.name )
+						element = c2.fragment
+						elementdata = c2.array
+					}else{
+						placeHolderValueLookup[index] = [ change.object, change.name ]
+						elementdata = element = createChild( childdata )
+					}
+
 					var l = getLastChild( array[Number(change.name)-1] )
-					if( l == getLastChild( l.parentNode.children ) ){
+					if( l == getLastChild( l.parentNode.children ) || l == getLastChild( l.parentNode.childNodes ) ){
 						l.parentNode.appendChild( element )
 					}else{
 						l.parentNode.insertBefore( element ,l.nextSibling )
 					}
 					
-					array.push(element)
+					array.push(elementdata)
 
 					placeHolderValueLookup.pop()
 					placeHolderValueLookup = []
