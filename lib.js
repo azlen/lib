@@ -168,15 +168,15 @@ function createChildMap( data ){
 				}else if( change.type == 'add' ){
 					placeHolderValueLookup = placeHolderValueLookupBackup
 
-					var childdata = f ? data.fn( data.modifier(change.object[change.name]) ) : data.fn
+					var childdata = f ? data.fn( change.object[change.name] ) : data.fn
 					var element;
 					var elementdata;
 					if(childdata.constructor == Array){
-						var c2 = createChildMapChildren( childdata, change.object.map( data.modifier ), change.name )
+						var c2 = createChildMapChildren( childdata, change.object, change.name )
 						element = c2.fragment
 						elementdata = c2.array
 					}else{
-						placeHolderValueLookup[index] = [ change.object.map( data.modifier ), change.name ]
+						placeHolderValueLookup[index] = [ change.object, change.name ]
 						elementdata = element = createChild( childdata )
 					}
 
