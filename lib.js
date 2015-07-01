@@ -62,10 +62,10 @@ function el(o){
 function createProp(element, key, prop){
 	if(typeof prop == 'function' && prop.parent != undefined){
 		var data = prop()
-		element.setAttribute(key, data.object[data.property])
+		element.setAttribute(key, data.modifier(data.object[data.property]))
 		listen(data.object, data.property, function(change){
 			if(change.type == 'update' || change.type == 'add'){
-				element.setAttribute(key, change.object[change.name])
+				element.setAttribute(key, data.modifier(change.object[change.name]))
 			}else if(change.type == 'delete'){
 				element.setAttribute(key, '')
 			}
@@ -91,10 +91,10 @@ function createStyle(element, style){
 function createStyleProp(element, style, i){
 	if(typeof style[i] == 'function' && style[i].parent != undefined){
 		var data = style[i]()
-		element.style[i] = data.object[data.property]
+		element.style[i] = data.modifier(data.object[data.property])
 		listen(data.object, data.property, function(change){
 			if(change.type == 'update' || change.type == 'add'){
-				element.style[i] = change.object[change.name]
+				element.style[i] = data.modifier(change.object[change.name])
 			}else if(change.type == 'delete'){
 				element.style[i] = ''
 			}
@@ -119,16 +119,16 @@ function createChild( data ){
 }
 
 function createChildObs( data ){
-	var child = el( data.object[data.property] );
+	var child = el( data.modifier(data.object[data.property]) );
 	listen(data.object, data.property, function(change){
 		if(change.type == 'update' || change.type == 'add'){
 			if( change.object[change.name].isReactiveTemplate || isElement(child) ){
-				var newchild = el(change.object[change.name])
+				var newchild = el( data.modifier(change.object[change.name]) )
 				child.parentNode.replaceChild( newchild, child )
 				child = newchild
 			}
 			if( isNode(child) ){
-				child.nodeValue = change.object[change.name]
+				child.nodeValue = data.modifier(change.object[change.name])
 			}
 		}else if(change.type == 'delete'){
 			if( isElement(child) ){
@@ -152,8 +152,9 @@ function createChildMap( data ){
 	}
 
 	var f = typeof data.fn == 'function' && data.fn.parent == undefined
-	var array =  f ? data.array.map( data.fn ) : data.array.map(function(){return data.fn})
-	var c = createChildMapChildren( array, data.array )
+	var values = data.array.map( data.modifier )
+	var array =  f ? values.map( data.fn ) : values.map(function(){return data.fn})
+	var c = createChildMapChildren( array, values )
 
 	var fragment = c.fragment
 	array = c.array
@@ -168,15 +169,15 @@ function createChildMap( data ){
 				}else if( change.type == 'add' ){
 					placeHolderValueLookup = placeHolderValueLookupBackup
 
-					var childdata = f ? data.fn( change.object[change.name] ) : data.fn
+					var childdata = f ? data.fn( data.modifier(change.object[change.name]) ) : data.fn
 					var element;
 					var elementdata;
 					if(childdata.constructor == Array){
-						var c2 = createChildMapChildren( childdata, change.object, change.name )
+						var c2 = createChildMapChildren( childdata, change.object.map( data.modifier ), change.name )
 						element = c2.fragment
 						elementdata = c2.array
 					}else{
-						placeHolderValueLookup[index] = [ change.object, change.name ]
+						placeHolderValueLookup[index] = [ change.object.map( data.modifier ), change.name ]
 						elementdata = element = createChild( childdata )
 					}
 
@@ -241,7 +242,7 @@ function createChildMapChildren( data, values, superindex ){
 			fragment.appendChild( c.fragment )
 			return c.array
 		}
-		placeHolderValueLookup[index] = [values, superindex || i]
+		placeHolderValueLookup[index] = [values, superindex != undefined ? superindex : i]
 		return fragment.appendChild( createChild( d ) )
 	})
 	placeHolderValueLookup.pop()
@@ -274,32 +275,41 @@ function render(o, e){
 	e.appendChild( createChild(list) )
 }
 
-function obs(object, property){
+function obs(object, property, modifier){
+	modifier = modifier || function(a){return a}
 	function get(){
 		return {
 			object:object,
-			property:property
+			property:property,
+			modifier:modifier
 		}
 	}
 	get.parent = obs
 	return get
 }
 
-function map(array, fn){
+function map(array, fn, modifier){
+	modifier = modifier || function(a){return a}
 	function get(){
 		return {
 			array:array,
-			fn:fn
+			fn:fn,
+			modifier:modifier
 		}
 	}
 	get.parent = map
 	return get
 }
 
-function plh(nested){
+function plh(nested, modifier){
+	if( typeof nested == 'function' ){
+		modifier = nested
+		nested = 0
+	}
+	modifier = modifier || function(a){return a}
 	nested = nested || 0
 	function get(){
-		return obs( placeHolderValueLookup[nested][0], placeHolderValueLookup[nested][1] )()
+		return obs( placeHolderValueLookup[nested][0], placeHolderValueLookup[nested][1], modifier )()
 	}
 	get.parent = plh
 	return get
