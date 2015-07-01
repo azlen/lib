@@ -152,9 +152,8 @@ function createChildMap( data ){
 	}
 
 	var f = typeof data.fn == 'function' && data.fn.parent == undefined
-	var values = data.array.map( data.modifier )
-	var array =  f ? values.map( data.fn ) : values.map(function(){return data.fn})
-	var c = createChildMapChildren( array, values )
+	var array =  f ? data.array.map( data.fn ) : data.array.map(function(){return data.fn})
+	var c = createChildMapChildren( array, data.array )
 
 	var fragment = c.fragment
 	array = c.array
@@ -288,13 +287,11 @@ function obs(object, property, modifier){
 	return get
 }
 
-function map(array, fn, modifier){
-	modifier = modifier || function(a){return a}
+function map(array, fn){
 	function get(){
 		return {
 			array:array,
-			fn:fn,
-			modifier:modifier
+			fn:fn
 		}
 	}
 	get.parent = map
