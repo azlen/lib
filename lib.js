@@ -118,16 +118,58 @@ function createChild( data ){
 	}
 }
 
+function collapse( data ){
+	var array = []
+	for( var i = 0; i < data.length; i++ ){
+		if(data[i].constructor == Array){
+			array.concat(collapse(data[i]))
+		}else{
+			array.push(data[i])
+		}
+	}
+	return array
+}
+
 function createChildObs( data ){
-	var child = el( data.modifier(data.object[data.property]) );
+	var child;
+	var value = data.modifier(data.object[data.property]);
+	if( value.constructor == Array ){
+		child = collapse(value).map(createChild)
+	}else{
+		child = createChild(value)
+	}
+
 	listen(data.object, data.property, function(change){
 		if(change.type == 'update' || change.type == 'add'){
 			if( change.object[change.name].isReactiveTemplate || isElement(child) ){
-				var newchild = el( data.modifier(change.object[change.name]) )
+				console.log('bye')
+				newchild = createChild( data.modifier(data.object[data.property]) )
+
 				child.parentNode.replaceChild( newchild, child )
 				child = newchild
-			}
-			if( isNode(child) ){
+			}else if( child.constructor == Array ){
+				console.log('hi')
+				var newchild = collapse(data.modifier(data.object[data.property])).map(createChild)
+				var last;
+				var parent;
+				child.forEach(function(c, i){
+					if(i == child.length-1){
+						last = c.nextSibling
+						parent = c.parentNode
+					}
+					c.parentNode.removeChild( c )
+				})
+				newchild.forEach(function(c){
+					if(last != undefined){
+						last.parentNode.insertBefore( c, last )
+						last = c
+					}else{
+						parent.appendChild( c )
+					}
+				})
+				child = newchild
+			}else if( isNode(child) ){
+				console.log('no?')
 				child.nodeValue = data.modifier(change.object[change.name])
 			}
 		}else if(change.type == 'delete'){
@@ -135,12 +177,23 @@ function createChildObs( data ){
 				var newchild = el('')
 				child.parentNode.replaceChild( newchild, child )
 				child = newchild
+			}else if( child.constructor == Array ){
+				child.forEach(function(c){
+					c.parentNode.removeChild(c)
+				})
 			}else{
 				child.nodeValue = ''
 			}
 		}
 	})
-	return child
+
+	if(child.constructor == Array){
+		var fragment = document.createDocumentFragment()
+		child.forEach(function(c){ fragment.appendChild(c) })
+		return fragment
+	}else{
+		return child
+	}
 }
 
 function createChildMap( data ){
